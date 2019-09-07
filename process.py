@@ -236,8 +236,8 @@ for child in root:
                                     value = full_text(cols[0])
                                     struct[name] = value
                                 elif last == "Premium Types" or last == "Visibility Types":
-                                    name = snake(cols[1].text)
-                                    value = cols[0].text
+                                    name = snake(cols[1].text).strip()
+                                    value = cols[0].text.strip()
                                     desc = full_text(cols[2])
                                     struct[name] = {
                                         "value": value,
@@ -245,24 +245,24 @@ for child in root:
                                     }
                                     pass
                                 elif last == "Guild Features":
-                                    name = cols[0].text
-                                    value = cols[0].text
-                                    desc = cols[1].text
+                                    name = cols[0].text.strip()
+                                    value = cols[0].text.strip()
+                                    desc = cols[1].text.strip()
                                     struct[name] = {
                                         "value": value,
                                         "desc": desc
                                     }
                                 else:
-                                    name = cols[0].text
-                                    value = cols[1].text
+                                    name = cols[0].text.strip()
+                                    value = cols[1].text.strip()
                                     struct[name] = value
                             elif col_count == 3:
-                                name = cols[0].text
+                                name = cols[0].text.strip()
                                 # Make hyperlinks inside of types work
                                 type_ = full_text(cols[1])
                                 desc = full_text(cols[2])
-                                real_name = name.replace("?", "").replace("*", "")
-                                real_type = type_.replace("?", "")
+                                real_name = name.replace("?", "").replace("*", "").strip()
+                                real_type = type_.replace("?", "").strip()
                                 struct[real_name] = dict_concat({
                                     ("value" if enum else "type"): deunicode(clarify_type(real_type, section=section_name)),
                                     "desc": "" if desc is None else deunicode(desc.strip())
@@ -272,20 +272,20 @@ for child in root:
                                     # This is an enum, but we can't autodetect that.
                                     section_name = fix_struct_name(last.lower().replace(" ", "_"), cols=2)
                                     # ID | Name | Format | Example
-                                    id_ = cols[0].text
-                                    name = cols[1].text
-                                    format_ = cols[2].text
-                                    example = deunicode(cols[3].text)
+                                    id_ = cols[0].text.strip()
+                                    name = cols[1].text.strip()
+                                    format_ = cols[2].text.strip()
+                                    example = deunicode(cols[3].text).strip()
                                     struct[snake(name)] = {
                                         "value": id_,
                                         "desc": f"{format_} - {example}"
                                     }
                                 elif last == "Optional Audit Entry Info":
                                     # Field | Type | Description | Action type
-                                    field = cols[0].text
+                                    field = cols[0].text.strip()
                                     type_ = full_text(cols[1])
                                     desc = deunicode(full_text(cols[2]))
-                                    action_type = cols[3].text
+                                    action_type = cols[3].text.strip()
                                     struct[field] = dict_concat({
                                         "type": clarify_type(type_),
                                         "desc": desc,
@@ -293,7 +293,7 @@ for child in root:
                                     }, typeinfo(field, type_))
                                 elif last == "Audit Log Change Key":
                                     # Name | Object changed | Type | Description
-                                    name = cols[0].text
+                                    name = cols[0].text.strip()
                                     object_changed = full_text(cols[1])
                                     type_ = full_text(cols[2])
                                     desc = deunicode(full_text(cols[3]))
@@ -304,7 +304,7 @@ for child in root:
                                     }, typeinfo(name, type_))
                                 elif last == "User Structure":
                                     # Field | Type | Description | Required OAuth scope
-                                    field = cols[0].text
+                                    field = cols[0].text.strip()
                                     type_ = full_text(cols[1])
                                     desc = deunicode(full_text(cols[2]))
                                     oauth_scope = full_text(cols[3])
@@ -317,7 +317,7 @@ for child in root:
                                     name = full_text(cols[0]).replace("*", "")
                                     value = full_text(cols[1])
                                     description = full_text(cols[2])
-                                    channel_types = cols[3].text
+                                    channel_types = (cols[3].text or "").strip()
                                     struct[name] = {
                                         "value": value,
                                         "description": description,

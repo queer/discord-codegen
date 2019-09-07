@@ -33,6 +33,9 @@ def quote(s):
         except ValueError:
             return f'"{s}"'
 
+def unquote(s):
+    return s.replace("'", "").replace('"', '')
+
 def derive_type(t):
     ts = t["type"]
     optional = t["optional"]
@@ -105,6 +108,50 @@ def derive_type(t):
 
     return res
 
+def extract_type(ts, f):
+    if ts == "activity_assets_structure":
+        return f'Discord.Gateway.ActivityAssets.create(from["{f}"])'
+    elif ts == "activity_party_structure":
+        return f'Discord.Gateway.ActivityParty.create(from["{f}"])'
+    elif ts == "activity_secrets_structure":
+        return f'Discord.Gateway.ActivitySecrets.create(from["{f}"])'
+    elif ts == "activity_structure":
+        return f'Discord.Gateway.Activity.create(from["{f}"])'
+    elif ts == "activity_timestamps_structure":
+        return f'Discord.Gateway.ActivityTimestamps.create(from["{f}"])'
+    elif ts == "client_status_structure":
+        return f'Discord.Gateway.ClientStatus.create(from["{f}"])'
+    elif ts == "embed_author_structure":
+        return f'Discord.Channel.EmbedAuthor.create(from["{f}"])'
+    elif ts == "embed_footer_structure":
+        return f'Discord.Channel.EmbedFooter.create(from["{f}"])'
+    elif ts == "embed_image_structure":
+        return f'Discord.Channel.EmbedImage.create(from["{f}"])'
+    elif ts == "embed_provider_structure":
+        return f'Discord.Channel.EmbedProvider.create(from["{f}"])'
+    elif ts == "embed_thumbnail_structure":
+        return f'Discord.Channel.EmbedThumbnail.create(from["{f}"])'
+    elif ts == "embed_video_structure":
+        return f'Discord.Channel.EmbedVideo.create(from["{f}"])'
+    elif ts == "guild_member_structure":
+        return f'Discord.Guild.GuildMember.create(from["{f}"])'
+    elif ts == "integration_account_structure":
+        return f'Discord.Guild.IntegrationAccount.create(from["{f}"])'
+    elif ts == "message_activity_structure":
+        return f'Discord.Channel.MessageActivity.create(from["{f}"])'
+    elif ts == "message_application_structure":
+        return f'Discord.Channel.MessageApplication.create(from["{f}"])'
+    elif ts == "message_reference_structure":
+        return f'Discord.Channel.MessageReference.create(from["{f}"])'
+    elif ts == "optional_audit_entry_info_structure":
+        return f'Discord.AuditLog.OptionalAuditEntryInfo.create(from["{f}"])'
+    elif ts == "user_structure":
+        return f'Discord.User.create(from["{f}"])'
+    elif ts == "role_structure":
+        return f'Discord.Permissions.Role.create(from["{f}"])'
+    else:
+        return f'from["{f}"]'
+
 out = f"defmodule Discord.{camel(module)} do\n"
 out += "{{stats}}\n"
 out += "  # Requires typed_struct: https://github.com/ejpcmac/typed_struct\n"
@@ -131,7 +178,7 @@ for (key, value) in data.items():
                 if "desc" in enum_value:
                     # :hahayes:
                     desc = enum_value["desc"]
-                    out += f'  @doc "{desc}"\n'
+                    out += f'  @doc "{unquote(desc)}"\n'
                 inner_value = enum_value["value"]
                 if "<<" in inner_value:
                     # This is evil but it solves the problem
@@ -163,6 +210,14 @@ for (key, value) in data.items():
                     field = quote(field)
                 out += f"    field :{field}, {derive_type(field_data)}\n"
             out += "  end\n\n"
+            out += "  def create(from) do\n"
+            out += f"    %Discord.{camel(module)}" + "{\n"
+            for (field, field_data) in value.items():
+                if "$" in field:
+                    field = quote(field)
+                out += f'      {field}: {extract_type(field_data["type"], unquote(field))},\n'
+            out += "    }\n"
+            out += "  end\n"
         else:
             out += f"  # {module} struct {key}\n"
             out += f"  defmodule {module_name} do\n"
@@ -177,6 +232,14 @@ for (key, value) in data.items():
                 if "$" in field:
                     field = quote(field)
                 out += f"      field :{field}, {derive_type(field_data)}\n"
+            out += "    end\n\n"
+            out += "    def create(from) do\n"
+            out += f"      %Discord.{camel(module)}.{module_name}" + "{\n"
+            for (field, field_data) in value.items():
+                if "$" in field:
+                    field = quote(field)
+                out += f'        {field}: {extract_type(field_data["type"], unquote(field))},\n'
+            out += "      }\n"
             out += "    end\n"
             out += "  end\n\n"
         structs_generated += 1
@@ -187,7 +250,7 @@ else:
     out = out.replace("{{struct_header}}", "")
 
 # Remove a trailing newline
-if structs_generated > 0 or (structs_generated == 0 and enums_generated > 0):
+if (structs_generated > 0 or (structs_generated == 0 and enums_generated > 0)) and out[:-2] == "\n\n":
     out = out[:-1]
 out += "end"
 
