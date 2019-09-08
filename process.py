@@ -140,6 +140,9 @@ def clarify_type(t, section=None):
         return "integer"
     elif t == "client_status object":
         return "client_status_structure"
+    elif t == "partial guild member object":
+        # This *shouldn't* fall under the caveats listed below
+        return "guild_member_structure"
     elif (t.startswith("partial ") or t.startswith("a partial ")) and t.endswith(" object"):
         # The docs contain a TON of stuff that doesn't exactly specify types in
         # a manner that can be easily parsed out. In that case, we just call it
