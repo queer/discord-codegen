@@ -110,45 +110,45 @@ def derive_type(t):
 
 def extract_type(ts, f):
     if ts == "activity_assets_structure":
-        return f'Discord.Gateway.ActivityAssets.create(from["{f}"])'
+        return f'if(from["{f}"], do: Discord.Gateway.ActivityAssets.create(from["{f}"]), else: nil)'
     elif ts == "activity_party_structure":
-        return f'Discord.Gateway.ActivityParty.create(from["{f}"])'
+        return f'if(from["{f}"], do: Discord.Gateway.ActivityParty.create(from["{f}"]), else: nil)'
     elif ts == "activity_secrets_structure":
-        return f'Discord.Gateway.ActivitySecrets.create(from["{f}"])'
+        return f'if(from["{f}"], do: Discord.Gateway.ActivitySecrets.create(from["{f}"]), else: nil)'
     elif ts == "activity_structure":
-        return f'Discord.Gateway.Activity.create(from["{f}"])'
+        return f'if(from["{f}"], do: Discord.Gateway.Activity.create(from["{f}"]), else: nil)'
     elif ts == "activity_timestamps_structure":
-        return f'Discord.Gateway.ActivityTimestamps.create(from["{f}"])'
+        return f'if(from["{f}"], do: Discord.Gateway.ActivityTimestamps.create(from["{f}"]), else: nil)'
     elif ts == "client_status_structure":
-        return f'Discord.Gateway.ClientStatus.create(from["{f}"])'
+        return f'if(from["{f}"], do: Discord.Gateway.ClientStatus.create(from["{f}"]), else: nil)'
     elif ts == "embed_author_structure":
-        return f'Discord.Channel.EmbedAuthor.create(from["{f}"])'
+        return f'if(from["{f}"], do: Discord.Channel.EmbedAuthor.create(from["{f}"]), else: nil)'
     elif ts == "embed_footer_structure":
-        return f'Discord.Channel.EmbedFooter.create(from["{f}"])'
+        return f'if(from["{f}"], do: Discord.Channel.EmbedFooter.create(from["{f}"]), else: nil)'
     elif ts == "embed_image_structure":
-        return f'Discord.Channel.EmbedImage.create(from["{f}"])'
+        return f'if(from["{f}"], do: Discord.Channel.EmbedImage.create(from["{f}"]), else: nil)'
     elif ts == "embed_provider_structure":
-        return f'Discord.Channel.EmbedProvider.create(from["{f}"])'
+        return f'if(from["{f}"], do: Discord.Channel.EmbedProvider.create(from["{f}"]), else: nil)'
     elif ts == "embed_thumbnail_structure":
-        return f'Discord.Channel.EmbedThumbnail.create(from["{f}"])'
+        return f'if(from["{f}"], do: Discord.Channel.EmbedThumbnail.create(from["{f}"]), else: nil)'
     elif ts == "embed_video_structure":
-        return f'Discord.Channel.EmbedVideo.create(from["{f}"])'
+        return f'if(from["{f}"], do: Discord.Channel.EmbedVideo.create(from["{f}"]), else: nil)'
     elif ts == "guild_member_structure":
-        return f'Discord.Guild.GuildMember.create(from["{f}"])'
+        return f'if(from["{f}"], do: Discord.Guild.GuildMember.create(from["{f}"]), else: nil)'
     elif ts == "integration_account_structure":
-        return f'Discord.Guild.IntegrationAccount.create(from["{f}"])'
+        return f'if(from["{f}"], do: Discord.Guild.IntegrationAccount.create(from["{f}"]), else: nil)'
     elif ts == "message_activity_structure":
-        return f'Discord.Channel.MessageActivity.create(from["{f}"])'
+        return f'if(from["{f}"], do: Discord.Channel.MessageActivity.create(from["{f}"]), else: nil)'
     elif ts == "message_application_structure":
-        return f'Discord.Channel.MessageApplication.create(from["{f}"])'
+        return f'if(from["{f}"], do: Discord.Channel.MessageApplication.create(from["{f}"]), else: nil)'
     elif ts == "message_reference_structure":
-        return f'Discord.Channel.MessageReference.create(from["{f}"])'
+        return f'if(from["{f}"], do: Discord.Channel.MessageReference.create(from["{f}"]), else: nil)'
     elif ts == "optional_audit_entry_info_structure":
-        return f'Discord.AuditLog.OptionalAuditEntryInfo.create(from["{f}"])'
+        return f'if(from["{f}"], do: Discord.AuditLog.OptionalAuditEntryInfo.create(from["{f}"]), else: nil)'
     elif ts == "user_structure":
-        return f'Discord.User.create(from["{f}"])'
+        return f'if(from["{f}"], do: Discord.User.create(from["{f}"]), else: nil)'
     elif ts == "role_structure":
-        return f'Discord.Permissions.Role.create(from["{f}"])'
+        return f'if(from["{f}"], do: Discord.Permissions.Role.create(from["{f}"]), else: nil)'
     else:
         return f'from["{f}"]'
 
