@@ -304,7 +304,7 @@ for child in root:
                                     }, typeinfo(name, type_))
                                 elif last == "User Structure":
                                     # Field | Type | Description | Required OAuth scope
-                                    field = cols[0].text.strip()
+                                    field = cols[0].text.replace("?", "").replace("*", "").strip()
                                     type_ = full_text(cols[1])
                                     desc = deunicode(full_text(cols[2]))
                                     oauth_scope = full_text(cols[3])
