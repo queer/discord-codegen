@@ -23,6 +23,7 @@ topics_path="$docs_path/topics"
 gateway_path="$topics_path/Gateway.md"
 permissions_path="$topics_path/Permissions.md"
 teams_path="$topics_path/Teams.md"
+oauth_path="$topics_path/OAuth2.md"
 
 function process() {
     echo ">> Processing file: $1"
@@ -35,10 +36,23 @@ function process() {
 process $gateway_path
 process $permissions_path
 process $teams_path
+process $oauth_path
 
 find $resources_path -maxdepth 1 -type f -print0 | while IFS= read -r -d $'\0' file; do
     process "$file"
 done
+
+# TODO: lol
+echo ""
+echo ""
+echo ""
+echo ""
+echo ""
+echo ""
+echo ""
+echo ""
+echo ""
+echo ""
 
 elixir_path="$output_dir/elixir"
 mkdir -pv $elixir_path

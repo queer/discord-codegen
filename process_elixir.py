@@ -5,8 +5,10 @@ import json
 import sys
 import time
 
+
 def now():
     return int(round(time.time() * 1000))
+
 
 start = now()
 
@@ -15,12 +17,15 @@ stdin = "".join(stdin_lines)
 module = sys.argv[1]
 data = json.loads(stdin)
 
+
 def camel(snake):
-    components = snake.split('_')
-    return ''.join(x.title() for x in components)
+    components = snake.split("_")
+    return "".join(x.title() for x in components)
+
 
 def snake(s):
     return s.replace(" ", "_").replace("-", "_").lower()
+
 
 def quote(s):
     try:
@@ -33,8 +38,10 @@ def quote(s):
         except ValueError:
             return f'"{s}"'
 
+
 def unquote(s):
-    return s.replace("'", "").replace('"', '')
+    return s.replace("'", "").replace('"', "")
+
 
 def derive_type(t):
     ts = t["type"]
@@ -43,14 +50,26 @@ def derive_type(t):
     res = ""
     if ts == "boolean":
         res += "boolean()"
-    elif ts == "string":
+    elif ts == "string" or ts == "string (can be null only in reaction emoji objects)":
         res += "String.t()"
     elif ts == "snowflake":
         res += "String.t()"
     elif ts == "integer":
         res += "integer()"
-    elif ts.startswith("array"):
+    elif ts == "array":
         res += "list()"
+    elif ts.startswith("array"):
+        res += (
+            "["
+            + derive_type(
+                {
+                    "type": ts.replace("array<", "").replace(">", ""),
+                    "optional": optional,
+                    "nullable": nullable,
+                }
+            )
+            + "]"
+        )
     elif ts == "map":
         res += "map()"
     elif ts == "timestamp":
@@ -58,7 +77,7 @@ def derive_type(t):
     elif ts == "any":
         res += "term()"
     elif ts == "snowflake | array<snowflake>":
-        res += "String.t() | list()"
+        res += "String.t() | [String.t()]"
     elif ts == "activity_assets_structure":
         res += "Discord.Gateway.ActivityAssets.t()"
     elif ts == "activity_party_structure":
@@ -71,6 +90,8 @@ def derive_type(t):
         res += "Discord.Gateway.ActivityTimestamps.t()"
     elif ts == "client_status_structure":
         res += "Discord.Gateway.ClientStatus.t()"
+    elif ts == "channel_structure":
+        res += "Discord.Channel.t()"
     elif ts == "embed_author_structure":
         res += "Discord.Channel.EmbedAuthor.t()"
     elif ts == "embed_footer_structure":
@@ -83,10 +104,14 @@ def derive_type(t):
         res += "Discord.Channel.EmbedThumbnail.t()"
     elif ts == "embed_video_structure":
         res += "Discord.Channel.EmbedVideo.t()"
+    elif ts == "embed_field_structure":
+        res += "Discord.Channel.EmbedField.t()"
     elif ts == "guild_member_structure":
         res += "Discord.Guild.GuildMember.t()"
     elif ts == "integration_account_structure":
         res += "Discord.Guild.IntegrationAccount.t()"
+    elif ts == "emoji_structure":
+        res += "Discord.Emoji.t()"
     elif ts == "message_activity_structure":
         res += "Discord.Channel.MessageActivity.t()"
     elif ts == "message_application_structure":
@@ -99,14 +124,59 @@ def derive_type(t):
         res += "Discord.User.t()"
     elif ts == "role_structure":
         res += "Discord.Permissions.Role.t()"
+    elif ts == "integer or string":
+        res += "integer() | String.t()"
+    elif ts == "roles":
+        res += "[Discord.Guild.Role.t()]"
+    elif ts == "presence_structure":
+        res += "Discord.Gateway.Presence.t()"
+    elif ts == "null":
+        res += "nil"
+    elif ts == "two_integers_(current_size,_max_size)_structure":
+        res += "[integer(), integer()]"
+    elif ts in [
+        "unavailable_guild_structure",
+        "partial_voice_state_structure",
+        "partial_presence_update_structure",
+        "channel_mention_structure", # TODO: Fix
+        "message_interaction_structure", # TODO: Fix
+    ]:
+        res += "map()"
+    elif ts == "welcome_screen_structure":
+        ts += "Discord.Guild.WelcomeScreen.t()"
+    elif ts == "welcome_screen_channel_structure":
+        ts += "Discord.Guild.WelcomeScreenChannel.t()"
+    elif ts == "audit_log_change_structure":
+        ts += "Discord.AuditLog.AuditLogChange.t()"
+    elif ts == "application_object_structure":
+        ts += "Discord.Oauth2.Application.t()"
+    elif ts == "team_member_structure":
+        ts += "Discord.Teams.TeamMember.t()"
+    elif ts == "sticker_structure":
+        ts += "Discord.Channel.MessageSticker.t()"
+    elif ts == "embed_structure":
+        ts += "Discord.Channel.Embed.t()"
+    elif ts == "reaction_structure":
+        ts += "Discord.Channel.Reaction.t()"
+    elif ts == "message_reference_structure":
+        ts += "Discord.Channel.MessageReference.t()"
+    elif ts == "message_structure":
+        ts += "Discord.Channel.Message.t()"
+    elif ts == "team_structure":
+        ts += "Discord.Teams.Team.t()"
+    elif ts == "attachment_structure":
+        ts += "Discord.Channel.Attachment.t()"
+    elif ts == "overwrite_structure":
+        ts += "Discord.Channel.Overwrite.t()"
     else:
         print("## Warning: Unknown type:", ts, "assuming term()", file=sys.stderr)
         res += "term()"
-    
+
     if optional or nullable:
         res += " | nil"
 
     return res
+
 
 def extract_type(ts, f):
     if ts == "activity_assets_structure":
@@ -121,6 +191,8 @@ def extract_type(ts, f):
         return f'if(from["{f}"], do: Discord.Gateway.ActivityTimestamps.create(from["{f}"]), else: nil)'
     elif ts == "client_status_structure":
         return f'if(from["{f}"], do: Discord.Gateway.ClientStatus.create(from["{f}"]), else: nil)'
+    elif ts == "presence_structure":
+        return f'if(from["{f}"], do: Discord.Gateway.Presence.create(from["{f}"]), else: nil)'
     elif ts == "embed_author_structure":
         return f'if(from["{f}"], do: Discord.Channel.EmbedAuthor.create(from["{f}"]), else: nil)'
     elif ts == "embed_footer_structure":
@@ -133,6 +205,8 @@ def extract_type(ts, f):
         return f'if(from["{f}"], do: Discord.Channel.EmbedThumbnail.create(from["{f}"]), else: nil)'
     elif ts == "embed_video_structure":
         return f'if(from["{f}"], do: Discord.Channel.EmbedVideo.create(from["{f}"]), else: nil)'
+    elif ts == "embed_field_structure":
+        return f'if(from["{f}"], do: Discord.Channel.EmbedField.create(from["{f}"]), else: nil)'
     elif ts == "guild_member_structure":
         return f'if(from["{f}"], do: Discord.Guild.GuildMember.create(from["{f}"]), else: nil)'
     elif ts == "integration_account_structure":
@@ -149,8 +223,31 @@ def extract_type(ts, f):
         return f'if(from["{f}"], do: Discord.User.create(from["{f}"]), else: nil)'
     elif ts == "role_structure":
         return f'if(from["{f}"], do: Discord.Permissions.Role.create(from["{f}"]), else: nil)'
+    elif ts == "audit_log_change_structure":
+        return f'if(from["{f}"], do: Discord.AuditLog.AuditLogChange.create(from["{f}"]), else: nil)'
+    elif ts == "application_object_structure":
+        return f'if(from["{f}"], do: Discord.Oauth2.Application.create(from["{f}"]), else: nil)'
+    elif ts == "sticker_structure":
+        return f'if(from["{f}"], do: Discord.Channel.MessageSticker.create(from["{f}"]), else: nil)'
+    elif ts == "embed_structure":
+        return (
+            f'if(from["{f}"], do: Discord.Channel.Embed.create(from["{f}"]), else: nil)'
+        )
+    elif ts == "reaction_structure":
+        return f'if(from["{f}"], do: Discord.Channel.Reaction.create(from["{f}"]), else: nil)'
+    elif ts == "message_reference_structure":
+        return f'if(from["{f}"], do: Discord.Channel.MessageReference.create(from["{f}"]), else: nil)'
+    elif ts == "message_structure":
+        return f'if(from["{f}"], do: Discord.Channel.Message.create(from["{f}"]), else: nil)'
+    elif ts == "teams_structure":
+        return f'if(from["{f}"], do: Discord.Teams.Team.create(from["{f}"]), else: nil)'
+    elif ts == "attachment_structure":
+        return f'if(from["{f}"], do: Discord.Channel.Attachment.create(from["{f}"]), else: nil)'
+    elif ts == "overwrite_structure":
+        return f'if(from["{f}"], do: Discord.Channel.Overwrite.create(from["{f}"]), else: nil)'
     else:
         return f'from["{f}"]'
+
 
 out = f"defmodule Discord.{camel(module)} do\n"
 out += "{{stats}}\n"
@@ -183,7 +280,9 @@ for (key, value) in data.items():
                 if "<<" in inner_value:
                     # This is evil but it solves the problem
                     inner_value = str(eval(inner_value))
-                out += f"  def {enum_name}_{snake(enum_key)}, do: {quote(inner_value)}\n"
+                out += (
+                    f"  def {enum_name}_{snake(enum_key)}, do: {quote(inner_value)}\n"
+                )
         out += "\n"
         enums_generated += 1
 
@@ -250,18 +349,29 @@ else:
     out = out.replace("{{struct_header}}", "")
 
 # Remove a trailing newline
-if (structs_generated > 0 or (structs_generated == 0 and enums_generated > 0)) and out[:-2] == "\n\n":
+if (structs_generated > 0 or (structs_generated == 0 and enums_generated > 0)) and out[
+    -2:
+] == "\n\n":
+    out = out[:-1]
+if (structs_generated > 0 or (structs_generated == 0 and enums_generated > 0)) and out[
+    -2:
+] == "\n\n":
     out = out[:-1]
 out += "end"
 
 end = now()
 
-out = out.replace("{{stats}}", f"""
+out = out.replace(
+    "{{stats}}",
+    f"""
   # Processed {str(len(stdin_lines))} lines of JSON in {end - start}ms.
   # Generated at {datetime.utcnow()}.
   # Generated from discord-api-docs {sys.argv[2]}.
   # Generated {enums_generated} enums.
   # Generated {structs_generated} structs.
-"""[1:])
+"""[
+        1:
+    ],
+)
 
 print(out)

@@ -30,21 +30,29 @@ skippable_sections = [
     "Widget Style Options",
     "Limits",
     "Params",
-    "Gateway Versions"
+    "Gateway Versions",
+    "Connection Structure",
+    "Visibility Types",
+    "OAuth2 URLs",
+    "Bot Auth Parameters",
 ]
 
 last = None
 table = {}
 
+
 def full_text(tag):
     # TODO: Missing space between text/tail?
-    return ((tag.text or "") + ''.join((t.text or "") + (t.tail or "") for t in tag)).replace("\\n", "").strip()
+    return (
+        ((tag.text or "") + "".join((t.text or "") + (t.tail or "") for t in tag))
+        .replace("\\n", "")
+        .strip()
+    )
+
 
 def typeinfo(name, type_):
-    return {
-        "optional": name.endswith("?"),
-        "nullable": type_.startswith("?")
-    }
+    return {"optional": name.endswith("?"), "nullable": type_.startswith("?")}
+
 
 def dict_concat(a, b):
     out = {}
@@ -52,11 +60,13 @@ def dict_concat(a, b):
     out.update(b)
     return out
 
+
 def snake(s):
     return s.replace(" ", "_").replace("-", "_").lower()
 
+
 def clarify_type(t, section=None):
-    t = t.replace("?", "")
+    t = t.replace("?", "").replace("”", "").replace("“", "").replace('"', "")
     if section is not None:
         if section == "activity_structure":
             if t == "timestamps object":
@@ -114,16 +124,29 @@ def clarify_type(t, section=None):
             if t == "array":
                 return "array<emoji_structure>"
         else:
+            if t == "gateway_status_update_structure":
+                print("!!! FIXING")
+                return "presence_structure"
             return clarify_type(t)
+    if t == "snowflake or array of snowflakes":
+        return "snowflake | array<snowflake>"
+    elif t == "emoji object":
+        return "emoji_structure"
     elif t == "user object":
         return "user_structure"
-    elif t == "guild member object":
+    elif t == "guild member object" or t == "member object" or t == "member":
         return "guild_member_structure"
     elif t.startswith("array of"):
         cleaned = re.sub(r"objects.*$", "", t.replace("array of", "")).strip()
         snaked = snake(cleaned)
         type_name = f"{snaked}_structure"
-        if type_name == "snowflake_structure" or type_name == "snowflakes_structure":
+        if type_name == "role_object_ids_structure":
+            type_name = "snowflake"
+        elif type_name == "strings_structure":
+            type_name = "string"
+        elif type_name == "guild_feature_strings_structure":
+            type_name = "string"
+        elif type_name == "snowflake_structure" or type_name == "snowflakes_structure":
             type_name = "snowflake"
         elif type_name == "Unavailable_Guild_structure":
             type_name = type_name.lower()
@@ -140,14 +163,35 @@ def clarify_type(t, section=None):
         return "integer"
     elif t == "client_status object":
         return "client_status_structure"
+    elif t == "welcome screen object":
+        return "welcome_screen_structure"
     elif t == "partial guild member object":
         # This *shouldn't* fall under the caveats listed below
         return "guild_member_structure"
-    elif (t.startswith("partial ") or t.startswith("a partial ")) and t.endswith(" object"):
+    elif (
+        (
+            (t.startswith("partial ") or t.startswith("a partial "))
+            and (t.endswith(" object") or t.endswith(" structure"))
+        )
+        or t == "role tags object"
+        or "integration" in t
+    ):
         # The docs contain a TON of stuff that doesn't exactly specify types in
         # a manner that can be easily parsed out. In that case, we just call it
         # a plain map and move on.
         return "map"
+    elif t == "partial presence update structure":
+        return "partial_presence_update_structure"
+    elif t == "application object":
+        return "application_object_structure"
+    elif t == "team object":
+        return "team_structure"
+    elif t == "message reference" or t == "message reference object":
+        return "message_reference_structure"
+    elif t == "message object":
+        return "message_structure"
+    elif t == "message interaction object":
+        return "message_interaction_structure"
     else:
         return t
     # Yes, this is actually needed as a final catch-all
@@ -156,8 +200,15 @@ def clarify_type(t, section=None):
     else:
         return t
 
+
 def deunicode(s):
-    return s.replace("\u2018", "'").replace("\u2019", "'").replace("\u201c", '"').replace("\u201d", '"')
+    return (
+        s.replace("\u2018", "'")
+        .replace("\u2019", "'")
+        .replace("\u201c", '"')
+        .replace("\u201d", '"')
+    )
+
 
 def fix_struct_name(name, cols=3):
     name = deunicode(name)
@@ -170,7 +221,16 @@ def fix_struct_name(name, cols=3):
             name += "_structure"
     elif name == "optional_audit_entry_info":
         return "optional_audit_entry_info_structure"
+    elif name == "presence_update_event_fields":
+        return "presence_update_structure"
+    elif name == "gateway_status_update_structure":
+        return "presence_structure"
+    elif name == "team_object_structure":
+        return "team_structure"
+    elif name == "team_members_object_structure":
+        return "team_member_structure"
     return name
+
 
 def is_actually_enum(name):
     return name in [
@@ -179,15 +239,44 @@ def is_actually_enum(name):
         "visibility_types_structure",
         "premium_types_structure",
         "verification_level_structure",
-        "bitwise_permission_flags"
+        "bitwise_permission_flags",
+        "system_channel_flags",
+        "guild_features",
+        "allowed_mention_types",
+        "allowed_mention_types_structure",
     ]
 
+
 for child in root:
-    if child.tag == "h6":
+    if child.tag == "h3" and "Application Object" in child.text:
+        last = "Application"
+    if child.tag == "h6" and child.text not in [
+        "System Channel Flags",
+        "Guild Features",
+        "Audit Log Structure",
+        "Audit Log Events",
+        "Voice State Structure",
+        "Voice Region Structure",
+        "Allowed Mentions Structure",
+        "Channel Mention Structure",
+        "Welcome Screen Structure",
+        "Presence Update Event Fields",
+        "Gateway Status Update Structure",
+        "Status Types",
+        "Welcome Screen Structure",
+        "Welcome Screen Channel Structure",
+        "Webhook Execution URL",
+    ]:
         if last is None:
             last = child.text
         else:
-            print("Warning: Setting last to", child.text, "but it was never reset from", last, file=sys.stderr)
+            print(
+                "Warning: Setting last to",
+                child.text,
+                "but it was never reset from",
+                last,
+                file=sys.stderr,
+            )
             last = child.text
     elif child.tag == "table":
         if last is None:
@@ -197,20 +286,79 @@ for child in root:
             # is none and not something we had to guess from heuristics.
             client_status_keys_found = []
             client_status_keys_expected = ["desktop?", "web?", "mobile?"]
+
+            guild_feature_keys_found = []
+            guild_feature_keys_expected = ["PARTNERED"]
+
+            status_update_keys_found = []
+            status_update_keys_expected = ["since", "status", "activities", "afk"]
+
+            status_type_keys_found = []
+            status_type_keys_expected = [
+                "online",
+                "dnd",
+                "idle",
+                "invisible",
+                "offline",
+            ]
+
+            welcome_screen_keys_found = []
+            welcome_screen_keys_expected = ["description", "welcome_channels"]
+
+            welcome_channels_keys_found = []
+            welcome_channels_keys_expected = ["channel_id", "emoji_id", "emoji_name"]
+
+            application_keys_found = []
+            application_keys_expected = ["verify_key"]
+
             for t in child:
                 if t.tag == "tbody":
                     for tr in t:
                         for x in tr:
-                            if x.text in client_status_keys_expected:
-                                client_status_keys_found.append(x.text)
-            if set(client_status_keys_found) == set(client_status_keys_expected):
+                            xt = x.text
+                            if xt in client_status_keys_expected:
+                                client_status_keys_found.append(xt)
+                            elif xt in guild_feature_keys_expected:
+                                guild_feature_keys_found.append(xt)
+                            elif xt in status_update_keys_expected:
+                                status_update_keys_found.append(xt)
+                            elif xt in status_type_keys_expected:
+                                status_type_keys_found.append(xt)
+                            elif xt in welcome_screen_keys_expected:
+                                welcome_screen_keys_found.append(xt)
+                            elif xt in welcome_channels_keys_expected:
+                                welcome_channels_keys_found.append(xt)
+                            elif xt in application_keys_expected:
+                                application_keys_found.append(xt)
+
+            def fits(a, b):
+                return set(a) == set(b)
+
+            if fits(client_status_keys_found, client_status_keys_expected):
                 # Not an accurate name, but it's Close Enough:tm: and should
                 # get it to generate correctly for us
                 last = "Client Status Structure"
+            elif fits(guild_feature_keys_found, guild_feature_keys_expected):
+                last = "Guild Features"
+            elif fits(status_update_keys_found, status_update_keys_expected):
+                last = "Gateway Status Update Structure"
+            elif fits(status_type_keys_found, status_type_keys_expected):
+                last = "Status Types"
+            elif fits(welcome_screen_keys_found, welcome_screen_keys_expected):
+                last = "Welcome Screen Structure"
+            elif fits(welcome_channels_keys_found, welcome_channels_keys_expected):
+                last = "Welcome Screen Channel Structure"
+            elif fits(application_keys_found, application_keys_expected):
+                last = "Application"
+
         if last is None:
-            print("Warning: Skipping unknown table due to no last header", file=sys.stderr)
+            print(
+                f"Warning: Skipping unknown table due to no last header.",
+                file=sys.stderr,
+            )
             last = None
         elif last not in skippable_sections:
+            last = last.strip()
             # print("Processing section:", last, file=sys.stderr)
             col_count = 0
             for table_chunk in child:
@@ -223,13 +371,17 @@ for child in root:
                     # Field | Type | Description
                     rows = list(table_chunk)
                     struct = {}
-                    section_name = fix_struct_name(last.lower().replace(" ", "_"), cols=col_count)
+                    section_name = fix_struct_name(
+                        last.lower().replace(" ", "_"), cols=col_count
+                    )
                     enum = False
                     if col_count == 3 or col_count == 4:
                         if is_actually_enum(section_name):
                             # This is an enum, but we can't autodetect that.
                             enum = True
-                            section_name = fix_struct_name(last.lower().replace(" ", "_"), cols=2)
+                            section_name = fix_struct_name(
+                                last.lower().replace(" ", "_"), cols=2
+                            )
                     if "json" not in section_name:
                         for row in rows:
                             cols = list(row)
@@ -238,42 +390,57 @@ for child in root:
                                     name = snake(full_text(cols[1]))
                                     value = full_text(cols[0])
                                     struct[name] = value
-                                elif last == "Premium Types" or last == "Visibility Types":
+                                elif (
+                                    last == "Premium Types"
+                                    or last == "Visibility Types"
+                                ):
                                     name = snake(cols[1].text).strip()
                                     value = cols[0].text.strip()
                                     desc = full_text(cols[2])
-                                    struct[name] = {
-                                        "value": value,
-                                        "desc": desc
-                                    }
+                                    struct[name] = {"value": value, "desc": desc}
                                     pass
                                 elif last == "Guild Features":
                                     name = cols[0].text.strip()
                                     value = cols[0].text.strip()
                                     desc = cols[1].text.strip()
-                                    struct[name] = {
-                                        "value": value,
-                                        "desc": desc
-                                    }
+                                    struct[name] = {"value": value, "desc": desc}
                                 else:
                                     name = cols[0].text.strip()
                                     value = cols[1].text.strip()
                                     struct[name] = value
                             elif col_count == 3:
+                                # print("LAST = " + last, file=sys.stderr)
                                 name = cols[0].text.strip()
                                 # Make hyperlinks inside of types work
                                 type_ = full_text(cols[1])
                                 desc = full_text(cols[2])
-                                real_name = name.replace("?", "").replace("*", "").strip()
+                                real_name = (
+                                    name.replace("?", "")
+                                    .replace("*", "")
+                                    .strip()
+                                    .replace(" ", "_")
+                                )
+                                real_name = real_name.upper() if enum else real_name
                                 real_type = type_.replace("?", "").strip()
-                                struct[real_name] = dict_concat({
-                                    ("value" if enum else "type"): deunicode(clarify_type(real_type, section=section_name)),
-                                    "desc": "" if desc is None else deunicode(desc.strip())
-                                }, typeinfo(name, type_))
+                                struct[real_name] = dict_concat(
+                                    {
+                                        ("value" if enum else "type"): deunicode(
+                                            clarify_type(
+                                                real_type, section=section_name
+                                            )
+                                        ),
+                                        "desc": ""
+                                        if desc is None
+                                        else deunicode(desc.strip()),
+                                    },
+                                    typeinfo(name, type_),
+                                )
                             elif col_count == 4:
                                 if last == "Activity Types":
                                     # This is an enum, but we can't autodetect that.
-                                    section_name = fix_struct_name(last.lower().replace(" ", "_"), cols=2)
+                                    section_name = fix_struct_name(
+                                        last.lower().replace(" ", "_"), cols=2
+                                    )
                                     # ID | Name | Format | Example
                                     id_ = cols[0].text.strip()
                                     name = cols[1].text.strip()
@@ -281,7 +448,7 @@ for child in root:
                                     example = deunicode(cols[3].text).strip()
                                     struct[snake(name)] = {
                                         "value": id_,
-                                        "desc": f"{format_} - {example}"
+                                        "desc": f"{format_} - {example}",
                                     }
                                 elif last == "Optional Audit Entry Info":
                                     # Field | Type | Description | Action type
@@ -289,33 +456,47 @@ for child in root:
                                     type_ = full_text(cols[1])
                                     desc = deunicode(full_text(cols[2]))
                                     action_type = cols[3].text.strip()
-                                    struct[field] = dict_concat({
-                                        "type": clarify_type(type_),
-                                        "desc": desc,
-                                        "action_type": action_type
-                                    }, typeinfo(field, type_))
+                                    struct[field] = dict_concat(
+                                        {
+                                            "type": clarify_type(type_),
+                                            "desc": desc,
+                                            "action_type": action_type,
+                                        },
+                                        typeinfo(field, type_),
+                                    )
                                 elif last == "Audit Log Change Key":
                                     # Name | Object changed | Type | Description
                                     name = cols[0].text.strip()
                                     object_changed = full_text(cols[1])
                                     type_ = full_text(cols[2])
                                     desc = deunicode(full_text(cols[3]))
-                                    struct[name] = dict_concat({
-                                        "object_changed": object_changed,
-                                        "type": clarify_type(type_),
-                                        "desc": desc
-                                    }, typeinfo(name, type_))
+                                    struct[name] = dict_concat(
+                                        {
+                                            "object_changed": object_changed,
+                                            "type": clarify_type(type_),
+                                            "desc": desc,
+                                        },
+                                        typeinfo(name, type_),
+                                    )
                                 elif last == "User Structure":
                                     # Field | Type | Description | Required OAuth scope
-                                    field = cols[0].text.replace("?", "").replace("*", "").strip()
+                                    field = (
+                                        cols[0]
+                                        .text.replace("?", "")
+                                        .replace("*", "")
+                                        .strip()
+                                    )
                                     type_ = full_text(cols[1])
                                     desc = deunicode(full_text(cols[2]))
                                     oauth_scope = full_text(cols[3])
-                                    struct[field] = dict_concat({
-                                        "type": clarify_type(type_),
-                                        "desc": desc,
-                                        "oauth_scope": oauth_scope
-                                    }, typeinfo(field, type_))
+                                    struct[field] = dict_concat(
+                                        {
+                                            "type": clarify_type(type_),
+                                            "desc": desc,
+                                            "oauth_scope": oauth_scope,
+                                        },
+                                        typeinfo(field, type_),
+                                    )
                                 elif last == "Bitwise Permission Flags":
                                     name = full_text(cols[0]).replace("*", "")
                                     value = full_text(cols[1])
@@ -324,17 +505,44 @@ for child in root:
                                     struct[name] = {
                                         "value": value,
                                         "description": description,
-                                        "channel_types": channel_types
+                                        "channel_types": channel_types,
+                                    }
+                                elif last == "Guild Request Members Structure":
+                                    field = full_text(cols[0]).replace("?", "").strip()
+                                    type_ = full_text(cols[1])
+                                    description = full_text(cols[2])
+                                    optional = full_text(cols[3]) == "true"
+                                    struct[field] = {
+                                        "type": clarify_type(type_),
+                                        "desc": description,
+                                        "optional": full_text(cols[0]).endswith("?"),
+                                        "nullable": not optional,
                                     }
                                 else:
-                                    print(f"Warning: Unknown 4-column section: {last}", file=sys.stderr)
+                                    print(
+                                        f"Warning: Unknown 4-column section: {last}",
+                                        file=sys.stderr,
+                                    )
                             else:
-                                print(f"Warning: Unknown column count: {col_count} (expected 2 or 3), section = {last}", file=sys.stderr)
+                                print(
+                                    f"Warning: Unknown column count: {col_count} (expected 2 - 4), section = {last}",
+                                    file=sys.stderr,
+                                )
+
+                        # NOTE: WE LITERALLY CANNOT USE fix_struct_name HERE!
+                        # It breaks the Elixir codegen somehow, idk why.
+                        # TODO: ??????????
+                        if section_name == "gateway_status_update_structure":
+                            section_name = "presence_structure"
+                        elif section_name == "team_object_structure":
+                            section_name = "team_structure"
                         table[section_name] = struct
                     else:
-                        print(f"Warning: Skipping json section: {last}", file=sys.stderr)
+                        print(
+                            f"Warning: Skipping json section: {last}", file=sys.stderr
+                        )
         last = None
     else:
-        print(f"Unknown tag: {child.tag}", file=sys.stderr)
+        print(f"Unknown tag: {child.tag}, last={last}", file=sys.stderr)
 
 print(json.dumps(table, indent=2))
