@@ -58,18 +58,6 @@ def derive_type(t):
         res += "integer()"
     elif ts == "array":
         res += "list()"
-    elif ts.startswith("array"):
-        res += (
-            "["
-            + derive_type(
-                {
-                    "type": ts.replace("array<", "").replace(">", ""),
-                    "optional": optional,
-                    "nullable": nullable,
-                }
-            )
-            + "]"
-        )
     elif ts == "map":
         res += "map()"
     elif ts == "timestamp":
@@ -133,41 +121,55 @@ def derive_type(t):
     elif ts == "null":
         res += "nil"
     elif ts == "two_integers_(current_size,_max_size)_structure":
-        res += "[integer(), integer()]"
+        res += "[integer()]"
     elif ts in [
         "unavailable_guild_structure",
         "partial_voice_state_structure",
         "partial_presence_update_structure",
-        "channel_mention_structure", # TODO: Fix
-        "message_interaction_structure", # TODO: Fix
+        "channel_mention_structure",  # TODO: Fix
+        "message_interaction_structure",  # TODO: Fix
     ]:
         res += "map()"
     elif ts == "welcome_screen_structure":
-        ts += "Discord.Guild.WelcomeScreen.t()"
+        res += "Discord.Guild.WelcomeScreen.t()"
     elif ts == "welcome_screen_channel_structure":
-        ts += "Discord.Guild.WelcomeScreenChannel.t()"
+        res += "Discord.Guild.WelcomeScreenChannel.t()"
     elif ts == "audit_log_change_structure":
-        ts += "Discord.AuditLog.AuditLogChange.t()"
+        res += "Discord.AuditLog.AuditLogChange.t()"
     elif ts == "application_object_structure":
-        ts += "Discord.Oauth2.Application.t()"
+        res += "Discord.Oauth2.Application.t()"
     elif ts == "team_member_structure":
-        ts += "Discord.Teams.TeamMember.t()"
+        res += "Discord.Teams.TeamMember.t()"
     elif ts == "sticker_structure":
-        ts += "Discord.Channel.MessageSticker.t()"
+        res += "Discord.Channel.MessageSticker.t()"
     elif ts == "embed_structure":
-        ts += "Discord.Channel.Embed.t()"
+        res += "Discord.Channel.Embed.t()"
     elif ts == "reaction_structure":
-        ts += "Discord.Channel.Reaction.t()"
+        res += "Discord.Channel.Reaction.t()"
     elif ts == "message_reference_structure":
-        ts += "Discord.Channel.MessageReference.t()"
+        res += "Discord.Channel.MessageReference.t()"
     elif ts == "message_structure":
-        ts += "Discord.Channel.Message.t()"
+        res += "Discord.Channel.Message.t()"
     elif ts == "team_structure":
-        ts += "Discord.Teams.Team.t()"
+        res += "Discord.Teams.Team.t()"
     elif ts == "attachment_structure":
-        ts += "Discord.Channel.Attachment.t()"
+        res += "Discord.Channel.Attachment.t()"
     elif ts == "overwrite_structure":
-        ts += "Discord.Channel.Overwrite.t()"
+        res += "Discord.Channel.Overwrite.t()"
+    elif ts.startswith("array"):
+        ts2 = ts.replace("array<", "").replace(">", "")
+        x = (
+            "["
+            + derive_type(
+                {
+                    "type": ts.replace("array<", "").replace(">", ""),
+                    "optional": optional,
+                    "nullable": nullable,
+                },
+            )
+            + "]"
+        )
+        res += x
     else:
         print("## Warning: Unknown type:", ts, "assuming term()", file=sys.stderr)
         res += "term()"

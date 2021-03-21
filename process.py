@@ -66,7 +66,13 @@ def snake(s):
 
 
 def clarify_type(t, section=None):
-    t = t.replace("?", "").replace("”", "").replace("“", "").replace('"', "")
+    t = (
+        t.replace("?", "")
+        .replace("”", "")
+        .replace("“", "")
+        .replace('"', "")
+        .replace(".", "_")
+    )
     if section is not None:
         if section == "activity_structure":
             if t == "timestamps object":
@@ -244,6 +250,7 @@ def is_actually_enum(name):
         "guild_features",
         "allowed_mention_types",
         "allowed_mention_types_structure",
+        "webhook_types_structure",
     ]
 
 
@@ -405,7 +412,7 @@ for child in root:
                                     desc = cols[1].text.strip()
                                     struct[name] = {"value": value, "desc": desc}
                                 else:
-                                    name = cols[0].text.strip()
+                                    name = cols[0].text.strip().replace(".", "_")
                                     value = cols[1].text.strip()
                                     struct[name] = value
                             elif col_count == 3:
