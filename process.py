@@ -131,7 +131,6 @@ def clarify_type(t, section=None):
                 return "array<emoji_structure>"
         else:
             if t == "gateway_status_update_structure":
-                print("!!! FIXING")
                 return "presence_structure"
             return clarify_type(t)
     if t == "snowflake or array of snowflakes":
